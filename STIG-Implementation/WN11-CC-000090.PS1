@@ -24,34 +24,21 @@
 
 .USAGE
     Example syntax:
-    PS C:\> .\WN11-CC-000090-CheckAndRemediate.ps1
+    PS C:\> .\WN11-CC-000090-Remediation.ps1
 #>
 
-# Define registry path and value
+# Define the registry path and value
 $registryPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Group Policy\{35378EAC-683F-11D2-A89A-00C04FBBCFA2}"
 $valueName = "NoGPOListChanges"
-$expectedValue = 0
+$valueData = 0  # 0 = Process registry policies even if GPOs haven't changed
 
-# Ensure the registry key exists
+# Create the key if it doesn't exist
 if (-not (Test-Path $registryPath)) {
     New-Item -Path $registryPath -Force | Out-Null
     Write-Host "Registry path created: $registryPath"
 }
 
-# Try to get current value and check compliance
-try {
-    $currentValue = (Get-ItemProperty -Path $registryPath -Name $valueName -ErrorAction Stop).$valueName
+# Set the required value to remediate the STIG
+Set-ItemProperty -Path $registryPath -Name $valueName -Value $valueData -Type DWord
 
-    if ($currentValue -eq $expectedValue) {
-        Write-Host "WN11-CC-000090: Compliant"
-    } else {
-        Write-Host "WN11-CC-000090: Non-Compliant – Current value is $currentValue"
-        Write-Host "Remediating by setting '$valueName' to '$expectedValue'..."
-        Set-ItemProperty -Path $registryPath -Name $valueName -Value $expectedValue -Type DWord
-        Write-Host "Remediation complete."
-    }
-} catch {
-    Write-Host "WN11-CC-000090: Non-Compliant – Registry value not found. Creating and setting value..."
-    New-ItemProperty -Path $registryPath -Name $valueName -Value $expectedValue -PropertyType DWord -Force | Out-Null
-    Write-Host "Remediation complete."
-}
+Write-Host "WN11-CC-000090 remediated successfully. '$valueName' set to '$valueData'."
